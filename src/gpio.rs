@@ -1,5 +1,5 @@
-mod mem;
-mod pin;
+pub mod mem;
+pub mod pin;
 
 use std::error;
 use std::fmt;

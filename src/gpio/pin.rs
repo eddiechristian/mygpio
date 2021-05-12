@@ -76,6 +76,7 @@ macro_rules! impl_drop {
                 }
 
                 if let Some(prev_mode) = self.prev_mode {
+                    println!("resetting mode");
                     self.pin.set_mode(prev_mode);
                 }
             }

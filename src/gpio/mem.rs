@@ -15,7 +15,7 @@ use crate::gpio::{Error, Result, Mode};
 use crate::system::{DeviceInfo, SoC};
 
 
-const PATH_DEV_GPIOMEM: &str = "/dev/gpiomem";
+pub const PATH_DEV_GPIOMEM: &str = "/dev/gpiomem";
 const PATH_DEV_MEM: &str = "/dev/mem";
 // The BCM2835 has 41 32-bit registers related to the GPIO (datasheet @ 6.1).
 // The BCM2711 (RPi4) has 58 32-bit registers related to the GPIO.
@@ -54,7 +54,7 @@ impl fmt::Display for GpioMem {
 }
 
 impl GpioMem {
-    pub fn open() -> Result<GpioMem> {
+    pub(crate) fn open() -> Result<GpioMem> {
         if let Ok(mem_ptr) = GpioMem::map_devgpiomem() {
             Ok(
                 GpioMem{
@@ -68,18 +68,21 @@ impl GpioMem {
 
     }
     pub(crate) fn mode(&self, pin: u8) -> Mode {
-        Mode::Output
+        let mode = Mode::Input;
+        println!("mode pin: {} mode: {}",pin, mode);
+        mode
     }
 
     pub(crate) fn set_mode(&self, pin: u8, mode: Mode) {
-
+        println!("set_mode: pin: {} mode: {}",pin, mode);
     }
 
     pub(crate) fn set_low(&self, pin: u8) {
-
+        println!("set_low: pin: {}",pin);
     }
 
     pub(crate) fn set_high(&self, pin: u8) {
+        println!("set_high: pin: {}",pin);
 
     }
 
