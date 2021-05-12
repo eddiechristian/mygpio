@@ -14,6 +14,19 @@ use libc::{self, c_void, off_t, size_t, MAP_FAILED, MAP_SHARED, O_SYNC, PROT_REA
 use crate::gpio::{Error, Result, Mode};
 use crate::system::{DeviceInfo, SoC};
 
+macro_rules! my_match {
+   ($obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr),*) => {
+       match $obj {
+           $($matcher $(if $pred)* => $result),*
+       }
+   }
+}
+
+macro_rules! to_mode {
+    ($val:expr) => {{
+
+    }};
+}
 
 pub const PATH_DEV_GPIOMEM: &str = "/dev/gpiomem";
 const PATH_DEV_MEM: &str = "/dev/mem";
@@ -68,22 +81,43 @@ impl GpioMem {
 
     }
     pub(crate) fn mode(&self, pin: u8) -> Mode {
-        let mode = Mode::Input;
-        println!("mode pin: {} mode: {}",pin, mode);
+
+        let offset = pin / 10;
+        let reg_value = self.read(0);
+        let shift = (pin % 10) * 3;
+        //println!(" reg_value: {:#034b} shift: {}", reg_value, shift);
+        let mode = unsafe { std::mem::transmute((reg_value >> shift) as u8 & 0b111) };
         mode
     }
 
     pub(crate) fn set_mode(&self, pin: u8, mode: Mode) {
-        println!("set_mode: pin: {} mode: {}",pin, mode);
+        let offset = (pin / 10) as usize;
+        let reg_value = self.read(0);
+        let shift = (pin % 10) * 3;
+        self.write(
+            offset,
+            (reg_value & !(0b111 << shift)) | ((mode as u32) << shift),
+        );
+
     }
 
+    /// this is not a register, so just setting bit has no affect on other pins
+    ///    1098_7654_3210_9876_5432_1098_7654_3210
+    /// e.g 0000_0000_0000_0000_0000_0001_0000_0000 would clear 8th pin only.
     pub(crate) fn set_low(&self, pin: u8) {
-        println!("set_low: pin: {}",pin);
+        let offset = GPCLR0 + ((pin / 32) as usize);
+        let shift = pin % 32;
+        let value = 1 << shift;
+        self.write(offset,  value);
     }
 
+    /// this is not a register, so just setting bit has no affect on other pins
+    ///    1098_7654_3210_9876_5432_1098_7654_3210
+    /// e.g 0000_0000_0000_0000_0000_0001_0000_0000 would clear 8th pin only.
     pub(crate) fn set_high(&self, pin: u8) {
-        println!("set_high: pin: {}",pin);
-
+        let offset = GPSET0 + pin as usize / 32;
+        let shift = pin % 32;
+        self.write(offset, 1 << shift);
     }
 
     fn map_devgpiomem() -> Result<*mut u32> {
@@ -113,13 +147,11 @@ impl GpioMem {
     }
     #[inline(always)]
     fn read(&self, offset: usize) -> u32 {
-        trace!("read", offset);
         unsafe { ptr::read_volatile(self.mem_ptr.add(offset)) }
     }
 
     #[inline(always)]
     fn write(&self, offset: usize, value: u32) {
-        trace!("write ", offset, value);
         unsafe {
             ptr::write_volatile(self.mem_ptr.add(offset), value);
         }

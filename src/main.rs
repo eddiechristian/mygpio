@@ -26,11 +26,14 @@ fn main() {
     if let Ok(gpio_mem) =GpioMem::open(){
         println!("gpio_mem: {}", gpio_mem);
         let gpio_rc = Rc::new(gpio_mem);
-        let mut out_pin5 = Pin::new(27,gpio_rc).into_output();
+        let mut out_pin3 = Pin::new(3,gpio_rc).into_output();
         while  running.load(Ordering::SeqCst){
-            out_pin5.set_high();
+            println!("led on");
+            out_pin3.set_high();
             thread::sleep(Duration::from_millis(2000));
-            out_pin5.set_low();
+            out_pin3.set_low();
+            println!("led off");
+            thread::sleep(Duration::from_millis(2000));
         }
 
     } else {
